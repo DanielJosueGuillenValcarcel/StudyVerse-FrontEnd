@@ -1,9 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Auth, createUserWithEmailAndPassword } from '@angular/fire/auth';
-import { Firestore, collection, doc, setDoc, query, where, getDocs } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
-import { RegisterUser } from '../../models/register-user.model';
+import { RegisterUserModel } from '../../models/register-user.model';
+import { getEmptyRegisterUser } from '../../models/register-user.model';
+import { AuthService } from '../../services/auth-service';
 
 @Component({
   selector: 'app-register-component',
@@ -12,15 +12,7 @@ import { RegisterUser } from '../../models/register-user.model';
   styleUrl: './register-component.css'
 })
 export class RegisterComponent {
-  user: RegisterUser = {
-    name: '',
-    lastName: '',
-    username: '',
-    email: '',
-    password: '',
-    password2: '',
-    birthday: new Date()
-  }
+  user: RegisterUserModel = getEmptyRegisterUser();
 
   message = '';
 
@@ -28,50 +20,41 @@ export class RegisterComponent {
   passwordStrengthColor = 'red';
   passwordFeedback = '';
 
-  private auth = inject(Auth);
-  private firestore = inject(Firestore);
   private router = inject(Router);
+  private authService = inject(AuthService);
 
   async register() {
-    // Corroborar que las contraseñas sean identicas
     if (this.user.password != this.user.password2) {
       this.message = "Las contraseñas no coinciden";
       return;
     }
 
+    const usernameExist : boolean = await this.authService.usernameExist(this.user.username);
+
+    if (usernameExist) {
+      this.message = "El Nombre de Usuario ya existe";
+      return;
+    }
+
     try {
-      // Construye la consulta hacia la firestore
-      const userRef = collection(this.firestore, "profile");
-      const q = query(userRef, where('username', "==", this.user.username));
-      const querySnapshot = await getDocs(q);
+      const cred = await this.authService.registerUser(this.user);
 
-      // Comprueba que no exista un nombre de usuario antes de crear
-      if (!querySnapshot.empty) {
-        this.message = 'El Nombre de Usuario ya existe';
-        return;
-      }
-
-      const cred = await createUserWithEmailAndPassword(
-        this.auth, 
-        this.user.email, 
-        this.user.password
-      );
-
-      await setDoc(doc(this.firestore, 'profile', cred.user.uid), {
+      await this.authService.saveUserProfile(cred.user.uid, {
         name: this.user.name,
         lastName: this.user.lastName,
         username: this.user.username,
         email: this.user.email,
         birthday: this.user.birthday,
         createdAt: new Date()
-      });
+      })
 
-      this.message = 'Registro exitoso, ahora puedes iniciar sesión';
-      setTimeout(() => this.router.navigateByUrl('/'), 2000);
+      this.message = 'Registro exitoso ✅';
+      this.router.navigateByUrl('/');
 
     } catch (error: any) {
       this.message = "Error en el registro: " + error.message;
     }
+    
   }
 
   checkPasswordStrength() {
