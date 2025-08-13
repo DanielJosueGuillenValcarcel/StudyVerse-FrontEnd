@@ -17,7 +17,7 @@ export class AuthService {
   }
 
   loginUser(user: LoginUserModel) : Promise<UserCredential> {
-    return signInWithEmailAndPassword(this.auth, user.email, user.password);
+    return signInWithEmailAndPassword(this.auth, user.email, user.password); // Devuelve una promesa
   }
 
   async usernameExist(username: string) : Promise<boolean>{
