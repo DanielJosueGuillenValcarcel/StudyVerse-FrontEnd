@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, UserCredential } from '@angular/fire/auth';
+import { Auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, UserCredential, fetchSignInMethodsForEmail } from '@angular/fire/auth';
 import { Firestore, doc, where, query, getDocs, setDoc, collection } from '@angular/fire/firestore';
 import { RegisterUserModel } from '../models/register-user.model';
 import { LoginUserModel } from '../models/login-user.model';
@@ -27,6 +27,13 @@ export class AuthService {
     return !result.empty;
   }
 
+  async emailExist(email: string) : Promise<boolean> {
+    const newEmail = (email ?? '').trim().toLowerCase();
+    if (!newEmail) return false;
+    const methods = await fetchSignInMethodsForEmail(this.auth, newEmail);
+    return methods.length > 0;
+  }
+  
   saveUserProfile(uid: string, data: any): Promise<void> {
     return setDoc(doc(this.firestore, 'profile', uid), data);
   }
