@@ -26,4 +26,11 @@ export class AuthValidators {
         .usernameExist((control.value ?? '').toString())
         .then((exist) => (exist ? { usernameTaken: true } : null));
   }
+
+  static emailTaken(auth: AuthService): AsyncValidatorFn {
+    return (control: AbstractControl) => 
+      auth
+        .emailExist((control.value ?? '').toString())
+        .then(exist => exist ? {emailTaken: true} : null);
+  }
 }
